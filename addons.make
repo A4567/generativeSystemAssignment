@@ -1,0 +1,4 @@
+ofxCv
+ofxFaceTrackerAH
+ofxJSON
+ofxOpenCv
