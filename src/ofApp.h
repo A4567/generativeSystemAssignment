@@ -16,9 +16,12 @@ class ofApp : public ofBaseApp{
     void api();
     void setApi();
     void setFace();
-
+    void setContour();
+    
     void keyPressed(int key);
-		
+	
+    void contour();
+    
     ofVideoGrabber cam;
     ofxFaceTracker2 tracker;
     
@@ -35,4 +38,12 @@ class ofApp : public ofBaseApp{
     bool faceApi; // if true face if false Api
     
     ofPolyline line;
+   
+    int camW,camH;
+    ofxCvColorImage colorImg;
+    ofxCvGrayscaleImage grayImage, grayBg, grayDiff;
+    ofxCvContourFinder contourFinder;
+    vector<ofVec3f> blobpoints;
+    bool bLearnBackground;
+    int thresh;
 };
