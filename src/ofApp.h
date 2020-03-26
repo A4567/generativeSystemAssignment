@@ -12,10 +12,10 @@ class ofApp : public ofBaseApp{
 		void setup();
 		void update();
 		void draw();
-    void face();
+   
     void api();
     void setApi();
-    void setFace();
+   
     void setContour();
     
     void keyPressed(int key);
@@ -23,11 +23,6 @@ class ofApp : public ofBaseApp{
     void contour();
     
     ofVideoGrabber cam;
-    ofxFaceTracker2 tracker;
-    
-    vector<glm::vec2> facePoints;
-    
-    ofxFaceTracker2Landmarks::Feature faceFeature;
     
     ofImage camImg;
     ofPixels camPix;
@@ -45,5 +40,6 @@ class ofApp : public ofBaseApp{
     ofxCvContourFinder contourFinder;
     vector<ofVec3f> blobpoints;
     bool bLearnBackground;
-    int thresh;
+    int thresh,contnum;
+    int time;
 };

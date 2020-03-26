@@ -8,11 +8,11 @@ void ofApp::setup(){
     if(faceApi){
         ofSetBackgroundAuto(false);
         ofSetBackgroundColor(0);
-        setFace();
+       
         setApi();
     }else{
         ofSetBackgroundAuto(false);
-        ofSetBackgroundColor(0);
+        ofSetBackgroundColor(255);
         setContour();
         setApi();
     }
@@ -29,13 +29,10 @@ void ofApp::setContour(){
     grayBg.allocate(camW,camH);
     grayDiff.allocate(camW,camH);
     
-    thresh = 20;
+    thresh = 30;
+    contnum = 1;
 }
-void ofApp::setFace(){
-    cam.setup(ofGetWidth(), ofGetHeight());
-    tracker.setup();
-    
-}
+
 void ofApp::setApi(){
     apiKey = "7mVxnXbbyWVMm4fXm4giYXGMb7WpTTmy8zAPuBRg";
     string year = ofToString(ofGetYear());
@@ -57,24 +54,17 @@ void ofApp::setApi(){
 
 //--------------------------------------------------------------
 void ofApp::update(){
+    time = ofGetElapsedTimef();
     line.clear();
     if(faceApi){
-        facePoints.clear();
-        cam.update();
-        if(cam.isFrameNew()){
-            //tracker.update(cam);
-            camPix = cam.getPixels();
-            camImg.setFromPixels(camPix);
-            camImg.mirror(false, true);
-            camImg.setImageType(OF_IMAGE_COLOR);
-            tracker.update(camImg);
-        }
+       
     }else{
         blobpoints.clear();
         // line.clear();
         cam.update();
         if (cam.isFrameNew()){
             colorImg.setFromPixels(cam.getPixels());
+            colorImg.mirror(false,true);
             grayImage = colorImg; // convert our color image to a grayscale image
             if (bLearnBackground == true) {
                 grayBg = grayImage; // update the background image
@@ -82,21 +72,33 @@ void ofApp::update(){
             }
             grayDiff.absDiff(grayBg, grayImage);
             grayDiff.threshold(thresh);
-            contourFinder.findContours(grayDiff, 500, (camW*camH)/4, 2, false, true);
+            contourFinder.findContours(grayDiff, 100, (camW*camH)/4, contnum, false, true);
         }
     }
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
+    //ofEnableBlendMode(OF_BLENDMODE_MULTIPLY);
+    //ofDisableAlphaBlending();
     if(faceApi){
-        face();
-    }else{
-        contour();
         
-        //        contourFinder.draw(0,0,camW,camH);
-        //        ofSetColor(255);
-        //        ofDrawBitmapString(ofToString(thresh), 10,ofGetHeight()-10);
+    }else{
+        
+        //colorImg.draw(0,0,camW,camH);
+        ofPushMatrix();
+        ofScale(1.5, 1.5);
+        contour();
+        ofPopMatrix();
+               // contourFinder.draw(0,0,camW,camH);
+                ofSetColor(255);
+                ofDrawBitmapString(ofToString(contnum), 10,ofGetHeight()-10);
+        ofDrawBitmapString(ofToString(thresh), 10,ofGetHeight()-20);
+         ofDrawBitmapString(ofToString(time), ofGetWidth()-20,ofGetHeight()-20);
+    }
+    if(time % 30 == 0){
+        ofSetColor(0, 0, 0, 5);
+        ofDrawRectangle(0,0, ofGetWidth(), ofGetHeight());
     }
 }
 
@@ -105,16 +107,22 @@ void ofApp::keyPressed(int key){
     if(key == 'b'){
         ofClear(0);
     }
-    if(key == 'w'){
+    if(key == 'v'){
         ofClear(255);
     }
     if(key == ' '){
         bLearnBackground = true;
     }
     if(key == 'p'){
-        thresh++;
+        contnum++;
     }
     if(key == 'q'){
+        contnum--;
+    }
+    if(key == 'o'){
+        thresh++;
+    }
+    if(key == 'w'){
         thresh--;
     }
 }
@@ -127,8 +135,9 @@ void ofApp::contour(){
                 ofVec3f point(contourFinder.blobs[k].pts[i]);
                 blobpoints.push_back(point);
             }
-        }  int time = ofGetElapsedTimef();ofSetColor(255);
-               ofDrawBitmapString(ofToString(time), 10, ofGetHeight()-10);
+        }
+        time = ofGetElapsedTimef();
+
         for (int j = 0; j < blobpoints.size(); j++) {
             
             ofColor faceColor;
@@ -136,65 +145,27 @@ void ofApp::contour(){
             float pointAvg = (contourFinder.blobs[0].centroid.x + contourFinder.blobs[0].centroid.y)/2;//(blobpoints[j].y + blobpoints[j].x)/2;
             
             float screenAvg = (ofGetHeight() + ofGetWidth())/2;
-            
+            float camAvg = (cam.getHeight() + cam.getWidth())/2;
             float dist = ofDist(blobpoints[j].x, blobpoints[j].y, 0, 0);
-            float hue = ofMap(pointAvg, 0, screenAvg, 0, 255);
+            float hue = ofMap(pointAvg, 0, camAvg, 0, 255);
             
-            
-            faceColor.setHsb(hue, 255, 255, 10);
+
+            faceColor.setHsb(hue, hue, 255, 5);
             ofSetColor(faceColor);
-            line.addVertex(blobpoints[j]);
+
+            line.curveTo(blobpoints[j]);
         }
         line.close();
        
-        if(time % 3 == 0){
-            line.draw();
-        }
+
+           line.draw();
+        
+//        }
     }
 }
 
 
-//--------------------------------------------------------------
-void ofApp::face(){
-    api();
-    
-    for(int i = 0; i < tracker.instances.size(); i++){
-        faceFeature = tracker.instances[i].landmarks.ALL_FEATURES;
-        for(int j = 0; j < tracker.instances[i].landmarks.getFeatureIndices(faceFeature).size(); j++){
-            int nbp = tracker.instances[i].landmarks.getFeatureIndices(faceFeature)[j];
-            glm::vec2 pointF = tracker.instances[i].landmarks.getImagePoint(nbp);
-            facePoints.push_back(pointF);
-        }
-    }
-    
-    for (int d = 0; d < facePoints.size(); d++){
-        
-        ofPixelsRef facepix = camImg.getPixels();
-        ofColor faceColor;
-        float pointAvg = (facePoints[d].y + facePoints[d].x)/2;
-        float screenAvg = (ofGetHeight() + ofGetWidth())/2;
-        
-        float dist = ofDist(facePoints[d].x, facePoints[d].y, 0, 0);
-        float hue = ofMap(pointAvg, 0, screenAvg, 0, 255);//ofMap(dist, 0, screenAvg, 0, 255);
-        
-        //        faceColor = facepix.getColor(facePoints[d].x, facePoints[d].y);
-        faceColor.setHsb(hue, 255, 255, 10);
-        ofSetColor(faceColor);
-        
-        //ofDrawCircle(facePoints[d].x, facePoints[d].y, 5);
-        //line.curveTo(facePoints[d].x,facePoints[d].y);
-        
-        //line.addVertex(ofVec3f(cos(d*sin(facePoints[d].x))*200+ofGetWidth()/2,sin(cos(facePoints[d].y)*d)*200+ofGetHeight()/2,cos(d*7)*200));
-        if(tracker.instances.size() > 0){
-            line.addVertex(ofVec3f(facePoints[d].x,facePoints[d].y,0));
-        }
-    }
-    
-    
-    line.close();
-    line.draw();
-    // ofSetColor(255);
-}
+
 //--------------------------------------------------------------
 void ofApp::api(){
     
@@ -221,21 +192,17 @@ void ofApp::api(){
         string missDist = result["near_earth_objects"][date][i]["close_approach_data"][0]["miss_distance"]["astronomical"].asString();
         float miss = ofToFloat(missDist);
         
-        float posX = (i*1.3) + ofGetWidth()/2;
-        float posY = (i*1.4) + ofGetHeight()/2;
+        float posX = (i*1.3) + cam.getWidth()/2;
+        float posY = (i*1.4) + cam.getHeight()/2;
         
         float speed;
-        if(tracker.instances.size()>0){
-            speed = v/15;
-        }else{
-            speed = v/100;
-        }
+       
         
         float radius = d*miss;
         
         ofVec2f point;
-        point.x = ((ofGetWidth()*2) * ofNoise(ofGetElapsedTimef() * speed + posX)) - ofGetWidth()/2;
-        point.y = ((ofGetHeight()*2) * ofNoise(ofGetElapsedTimef()  * speed + posY)) - ofGetHeight()/2;
+        point.x = ((cam.getWidth()*2) * ofNoise(ofGetElapsedTimef() * speed + posX)) - cam.getWidth()/2;
+        point.y = ((cam.getHeight()*2) * ofNoise(ofGetElapsedTimef()  * speed + posY)) - cam.getHeight()/2;
         
         ofSetCircleResolution(360);
         // ofDrawCircle(point, radius);
