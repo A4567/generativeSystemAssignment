@@ -1,4 +1,4 @@
 ofxCv
-ofxFaceTrackerAH
 ofxJSON
+ofxKinect
 ofxOpenCv

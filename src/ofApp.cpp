@@ -6,10 +6,8 @@ void ofApp::setup(){
     faceApi = false;
     
     if(faceApi){
-        ofSetBackgroundAuto(false);
-        ofSetBackgroundColor(0);
-       
-        setApi();
+        ofSetBackgroundAuto(true);
+        
     }else{
         ofSetBackgroundAuto(false);
         ofSetBackgroundColor(255);
@@ -20,10 +18,11 @@ void ofApp::setup(){
     
 }
 void ofApp::setContour(){
-    camW = 1280;//640;//cam.getWidth();
-    camH = 720;//480;//cam.getHeight();
-    cam.setup(camW, camH);
-    
+    camW = cam.width;//1280;//640;//cam.getWidth();
+    camH = cam.height;//720;//480;//cam.getHeight();
+   // cam.setup(camW, camH);
+    cam.init();
+    cam.open();
     colorImg.allocate(camW,camH);
     grayImage.allocate(camW,camH);
     grayBg.allocate(camW,camH);
@@ -57,10 +56,7 @@ void ofApp::update(){
     time = ofGetElapsedTimef();
     line.clear();
     if(faceApi){
-       
-    }else{
-        blobpoints.clear();
-        // line.clear();
+        
         cam.update();
         if (cam.isFrameNew()){
             colorImg.setFromPixels(cam.getPixels());
@@ -74,6 +70,22 @@ void ofApp::update(){
             grayDiff.threshold(thresh);
             contourFinder.findContours(grayDiff, 100, (camW*camH)/4, contnum, false, true);
         }
+    }else{
+        blobpoints.clear();
+        // line.clear();
+        cam.update();
+               if (cam.isFrameNew()){
+                   colorImg.setFromPixels(cam.getPixels());
+                   colorImg.mirror(false,true);
+                   grayImage = colorImg; // convert our color image to a grayscale image
+                   if (bLearnBackground == true) {
+                       grayBg = grayImage; // update the background image
+                       bLearnBackground = false;
+                   }
+                   grayDiff.absDiff(grayBg, grayImage);
+                   grayDiff.threshold(thresh);
+                   contourFinder.findContours(grayDiff, 100, (camW*camH)/4, contnum, false, true);
+               }
     }
 }
 
@@ -82,12 +94,13 @@ void ofApp::draw(){
     //ofEnableBlendMode(OF_BLENDMODE_MULTIPLY);
     //ofDisableAlphaBlending();
     if(faceApi){
-        
+        colorImg.draw(0,0);
     }else{
-        
+       
         //colorImg.draw(0,0,camW,camH);
         ofPushMatrix();
-        ofScale(1.5, 1.5);
+        ofTranslate(cam.width/2,0,0);
+        ofScale(2, 2);
         contour();
         ofPopMatrix();
                // contourFinder.draw(0,0,camW,camH);
@@ -96,7 +109,7 @@ void ofApp::draw(){
         ofDrawBitmapString(ofToString(thresh), 10,ofGetHeight()-20);
          ofDrawBitmapString(ofToString(time), ofGetWidth()-20,ofGetHeight()-20);
     }
-    if(time % 30 == 0){
+    if(time % 40 == 0){
         ofSetColor(0, 0, 0, 5);
         ofDrawRectangle(0,0, ofGetWidth(), ofGetHeight());
     }
@@ -124,6 +137,9 @@ void ofApp::keyPressed(int key){
     }
     if(key == 'w'){
         thresh--;
+    }
+    if (key == 'c') {
+        faceApi = !faceApi;
     }
 }
 //---
@@ -195,7 +211,7 @@ void ofApp::api(){
         float posX = (i*1.3) + cam.getWidth()/2;
         float posY = (i*1.4) + cam.getHeight()/2;
         
-        float speed;
+        float speed = 0.01;
        
         
         float radius = d*miss;

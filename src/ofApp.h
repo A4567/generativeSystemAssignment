@@ -1,10 +1,10 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxFaceTracker2.h"
 #include "ofxOpenCv.h"
 #include "opencv2/opencv.hpp"
 #include "ofxJSON.h"
+#include "ofxKinect.h"
 
 class ofApp : public ofBaseApp{
 
@@ -22,8 +22,8 @@ class ofApp : public ofBaseApp{
 	
     void contour();
     
-    ofVideoGrabber cam;
-    
+//    ofVideoGrabber cam;
+    ofxKinect cam;
     ofImage camImg;
     ofPixels camPix;
     
