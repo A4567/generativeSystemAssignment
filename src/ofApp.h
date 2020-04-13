@@ -22,7 +22,7 @@ class ofApp : public ofBaseApp{
 	
     void contour();
     
-//    ofVideoGrabber cam;
+
     ofxKinect cam;
     ofImage camImg;
     ofPixels camPix;
@@ -30,7 +30,7 @@ class ofApp : public ofBaseApp{
     string url,apiKey,date;
     ofxJSONElement result;
     
-    bool faceApi; // if true face if false Api
+
     
     ofPolyline line;
    
