@@ -3,24 +3,21 @@
 //--------------------------------------------------------------
 void ofApp::setup(){
     
-    faceApi = false;
     
-    if(faceApi){
-        ofSetBackgroundAuto(true);
-        
-    }else{
-        ofSetBackgroundAuto(false);
-        ofSetBackgroundColor(255);
-        setContour();
-        setApi();
-    }
     
+    
+    ofSetBackgroundAuto(false);
+    ofSetBackgroundColor(255);
+    setContour();
+    setApi();
+    
+    ofSetFrameRate(20);
     
 }
 void ofApp::setContour(){
-    camW = cam.width;//1280;//640;//cam.getWidth();
-    camH = cam.height;//720;//480;//cam.getHeight();
-   // cam.setup(camW, camH);
+    camW = cam.width;
+    camH = cam.height;
+    
     cam.init();
     cam.open();
     colorImg.allocate(camW,camH);
@@ -55,61 +52,33 @@ void ofApp::setApi(){
 void ofApp::update(){
     time = ofGetElapsedTimef();
     line.clear();
-    if(faceApi){
-        
-        cam.update();
-        if (cam.isFrameNew()){
-            colorImg.setFromPixels(cam.getPixels());
-            colorImg.mirror(false,true);
-            grayImage = colorImg; // convert our color image to a grayscale image
-            if (bLearnBackground == true) {
-                grayBg = grayImage; // update the background image
-                bLearnBackground = false;
-            }
-            grayDiff.absDiff(grayBg, grayImage);
-            grayDiff.threshold(thresh);
-            contourFinder.findContours(grayDiff, 100, (camW*camH)/4, contnum, false, true);
+    
+    blobpoints.clear();
+    cam.update();
+    if (cam.isFrameNew()){
+        colorImg.setFromPixels(cam.getPixels());
+        colorImg.mirror(false,true);
+        grayImage = colorImg; // convert our color image to a grayscale image
+        if (bLearnBackground == true) {
+            grayBg = grayImage; // update the background image
+            bLearnBackground = false;
         }
-    }else{
-        blobpoints.clear();
-        // line.clear();
-        cam.update();
-               if (cam.isFrameNew()){
-                   colorImg.setFromPixels(cam.getPixels());
-                   colorImg.mirror(false,true);
-                   grayImage = colorImg; // convert our color image to a grayscale image
-                   if (bLearnBackground == true) {
-                       grayBg = grayImage; // update the background image
-                       bLearnBackground = false;
-                   }
-                   grayDiff.absDiff(grayBg, grayImage);
-                   grayDiff.threshold(thresh);
-                   contourFinder.findContours(grayDiff, 100, (camW*camH)/4, contnum, false, true);
-               }
+        grayDiff.absDiff(grayBg, grayImage);
+        grayDiff.threshold(thresh);
+        contourFinder.findContours(grayDiff, 100, (camW*camH)/4, contnum, false, true);
     }
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    //ofEnableBlendMode(OF_BLENDMODE_MULTIPLY);
-    //ofDisableAlphaBlending();
-    if(faceApi){
-        colorImg.draw(0,0);
-    }else{
-       
-        //colorImg.draw(0,0,camW,camH);
-        ofPushMatrix();
-        ofTranslate(cam.width/2,0,0);
-        ofScale(2, 2);
-        contour();
-        ofPopMatrix();
-               // contourFinder.draw(0,0,camW,camH);
-                ofSetColor(255);
-                ofDrawBitmapString(ofToString(contnum), 10,ofGetHeight()-10);
-        ofDrawBitmapString(ofToString(thresh), 10,ofGetHeight()-20);
-         ofDrawBitmapString(ofToString(time), ofGetWidth()-20,ofGetHeight()-20);
-    }
-    if(time % 40 == 0){
+    
+    ofPushMatrix();
+    ofTranslate(cam.width/2,0,0);
+    ofScale(2, 2);
+    contour();
+    ofPopMatrix();
+    if(time % 20 == 0){
         ofSetColor(0, 0, 0, 5);
         ofDrawRectangle(0,0, ofGetWidth(), ofGetHeight());
     }
@@ -122,6 +91,7 @@ void ofApp::keyPressed(int key){
     }
     if(key == 'v'){
         ofClear(255);
+        ofSetColor(ofRandom(0,255),ofRandom(0,255),ofRandom(0,255),10);
     }
     if(key == ' '){
         bLearnBackground = true;
@@ -138,13 +108,11 @@ void ofApp::keyPressed(int key){
     if(key == 'w'){
         thresh--;
     }
-    if (key == 'c') {
-        faceApi = !faceApi;
-    }
+    
 }
 //---
 void ofApp::contour(){
-     api();
+    api();
     if(contourFinder.nBlobs > 0){
         for(int k = 0; k < contourFinder.nBlobs; k ++){
             for(int i = 0; i < contourFinder.blobs[k].pts.size(); i++){
@@ -153,7 +121,7 @@ void ofApp::contour(){
             }
         }
         time = ofGetElapsedTimef();
-
+        
         for (int j = 0; j < blobpoints.size(); j++) {
             
             ofColor faceColor;
@@ -165,18 +133,17 @@ void ofApp::contour(){
             float dist = ofDist(blobpoints[j].x, blobpoints[j].y, 0, 0);
             float hue = ofMap(pointAvg, 0, camAvg, 0, 255);
             
-
+            
             faceColor.setHsb(hue, hue, 255, 5);
             ofSetColor(faceColor);
-
+            
             line.curveTo(blobpoints[j]);
         }
         line.close();
-       
-
-           line.draw();
         
-//        }
+        
+        line.draw();
+        
     }
 }
 
@@ -199,7 +166,6 @@ void ofApp::api(){
         float hue = ofMap(ofToFloat(cad), 0000, 2359, 0, 255);
         ofColor colour;
         colour.setHsb(0,0,255,10);
-        //ofSetColor(colour);
         
         string dMax = result["near_earth_objects"][date][i]["estimated_diameter"]["meters"]["estimated_diameter_max"].asString();
         string dMin = result["near_earth_objects"][date][i]["estimated_diameter"]["meters"]["estimated_diameter_min"].asString();
@@ -211,8 +177,12 @@ void ofApp::api(){
         float posX = (i*1.3) + cam.getWidth()/2;
         float posY = (i*1.4) + cam.getHeight()/2;
         
-        float speed = 0.01;
-       
+        float speed;
+        if(contourFinder.nBlobs>0){
+            speed = v/15;
+        }else{
+            speed = v/100;
+        }
         
         float radius = d*miss;
         
@@ -221,13 +191,12 @@ void ofApp::api(){
         point.y = ((cam.getHeight()*2) * ofNoise(ofGetElapsedTimef()  * speed + posY)) - cam.getHeight()/2;
         
         ofSetCircleResolution(360);
-        // ofDrawCircle(point, radius);
         
-        
-        //line.addVertex(ofVec3f(point.x,point.y,sin(speed)));
         line.curveTo(point.x, point.y);
         
     }
-    //    line.close();
-    //    line.draw();
+    if(contourFinder.nBlobs < 1){
+        line.close();
+        line.draw();
+    }
 }
